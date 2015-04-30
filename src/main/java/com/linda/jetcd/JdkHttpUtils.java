@@ -40,6 +40,10 @@ public class JdkHttpUtils {
 		return JdkHttpUtils.getConnection(uri, DEFAULT_CONNECTION_TIMEOUT, DEFAULT_READ_TIMEOUT);
 	}
 	
+	public static HttpURLConnection getConnection(String uri,int timeout) throws IOException{
+		return JdkHttpUtils.getConnection(uri, timeout, timeout);
+	}
+	
 	public static HttpURLConnection getConnection(String uri,int connectionTimeout,int readTimeout) throws IOException{
 		URL url = new URL(uri);
 		HttpURLConnection connection = (HttpURLConnection)url.openConnection();
@@ -59,15 +63,15 @@ public class JdkHttpUtils {
 	public static HttpResponseMeta getHttpResponse(HttpURLConnection connection) throws IOException{
 		HttpResponseMeta resp = new HttpResponseMeta();
 		int code = connection.getResponseCode();
-		resp.setCode(code);
-		if(code==200){
-			byte[] buffer = JdkHttpUtils.toByteArray(connection);
-			resp.setResponse(buffer);
-			resp.setContentType(connection.getContentType());
-			String respEncode = connection.getContentEncoding();
-			String encode = respEncode==null?JdkHttpUtils.getEncoding(resp.getContentType()):respEncode;
-			resp.setEncode(encode);
-		}
+		resp.setResponseCode(code);
+		String message = connection.getResponseMessage();
+		Object content = connection.getContent();
+		resp.setResponseMessage(message);
+//		if(code/200==1&&code%200<100){
+//			byte[] buffer = JdkHttpUtils.toByteArray(connection);
+//			resp.setResponse(buffer);
+//		}
+
 		connection.disconnect();
 		return resp;
 	}
@@ -87,19 +91,31 @@ public class JdkHttpUtils {
 	}
 	
 	public static HttpResponseMeta httpGet(String url,Map<String,Object> params,Map<String,String> headers) throws IOException{
-		return JdkHttpUtils.httpURL(url, params, headers, "GET");
+		return JdkHttpUtils.httpURL(url, params, headers, "GET",DEFAULT_READ_TIMEOUT);
+	}
+	
+	public static HttpResponseMeta httpGet(String url,Map<String,Object> params,Map<String,String> headers,int timeout) throws IOException{
+		return JdkHttpUtils.httpURL(url, params, headers, "GET",timeout);
 	}
 	
 	public static HttpResponseMeta httpDelete(String url,Map<String,Object> params,Map<String,String> headers) throws IOException{
-		return JdkHttpUtils.httpURL(url, params, headers, "DELETE");
+		return JdkHttpUtils.httpURL(url, params, headers, "DELETE",DEFAULT_READ_TIMEOUT);
 	}
 	
-	private static HttpResponseMeta httpURL(String url,Map<String,Object> params,Map<String,String> headers,String method) throws IOException{
-		url = url+"?"+JdkHttpUtils.encodeParams(params);
-		HttpURLConnection connection = JdkHttpUtils.getConnection(url);
+	private static String genUrl(String url,Map<String,Object> params){
+		if(params==null||params.size()<1){
+			return url;
+		}else{
+			return url+"?"+JdkHttpUtils.encodeParams(params);
+		}
+	}
+	
+	private static HttpResponseMeta httpURL(String url,Map<String,Object> params,Map<String,String> headers,String method,int timeout) throws IOException{
+		url = JdkHttpUtils.genUrl(url, params);
+		HttpURLConnection connection = JdkHttpUtils.getConnection(url,timeout);
 		JdkHttpUtils.setHeaders(connection, headers);
 		JdkHttpUtils.setEncoding(connection, DEFAULT_ENCODING);
-		JdkHttpUtils.initMethod(connection, "GET");
+		JdkHttpUtils.initMethod(connection, method);
 		connection.connect();
 		return JdkHttpUtils.getHttpResponse(connection);
 	}
@@ -114,8 +130,8 @@ public class JdkHttpUtils {
 		JdkHttpUtils.setEncoding(connection, DEFAULT_ENCODING);
 		JdkHttpUtils.initMethod(connection, method);
 		String body = JdkHttpUtils.encodeParams(params);
+		connection.setRequestProperty("Content-Type","application/x-www-form-urlencoded"); 
 		JdkHttpUtils.sendBody(connection, body.getBytes());
-		connection.connect();
 		return JdkHttpUtils.getHttpResponse(connection);
 	}
 	
@@ -133,32 +149,20 @@ public class JdkHttpUtils {
 	}
 	
 	public static HttpResponseMeta httpUrlParamsWithBody(String url,Map<String,String> headers,Map<String,Object> urlParams,String body,String method) throws IOException{
-		url = url+"?"+JdkHttpUtils.encodeParams(urlParams);
+		url = JdkHttpUtils.genUrl(url, urlParams);
 		HttpURLConnection connection = JdkHttpUtils.getConnection(url);
 		JdkHttpUtils.setHeaders(connection, headers);
 		JdkHttpUtils.setEncoding(connection, DEFAULT_ENCODING);
 		JdkHttpUtils.initMethod(connection, method);
 		if(body!=null){
 			JdkHttpUtils.sendBody(connection, body.getBytes());
+		}else{
+			connection.connect();
 		}
-		connection.connect();
 		return JdkHttpUtils.getHttpResponse(connection);
 	}
 	
 	public static HttpResponseMeta httpPostUrlParamsWithBody(String url,Map<String,String> headers,Map<String,Object> urlParams,String body) throws IOException{
-		url = url+"?"+JdkHttpUtils.encodeParams(urlParams);
-		HttpURLConnection connection = JdkHttpUtils.getConnection(url);
-		JdkHttpUtils.setHeaders(connection, headers);
-		JdkHttpUtils.setEncoding(connection, DEFAULT_ENCODING);
-		JdkHttpUtils.initMethod(connection, "POST");
-		if(body!=null){
-			JdkHttpUtils.sendBody(connection, body.getBytes());
-		}
-		connection.connect();
-		return JdkHttpUtils.getHttpResponse(connection);
-	}
-	
-	public static HttpResponseMeta httpPostUrlParamsWithBody(String url,Map<String,String> headers,Map<String,Object> urlParams,String body,String method) throws IOException{
 		return JdkHttpUtils.httpUrlParamsWithBody(url, headers, urlParams, body, "POST");
 	}
 	
@@ -173,8 +177,9 @@ public class JdkHttpUtils {
 		JdkHttpUtils.initMethod(connection, method);
 		if(body!=null){
 			JdkHttpUtils.sendBody(connection, body.getBytes());
+		}else{
+			connection.connect();
 		}
-		connection.connect();
 		return JdkHttpUtils.getHttpResponse(connection);
 	}
 	

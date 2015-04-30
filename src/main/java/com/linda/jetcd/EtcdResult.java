@@ -2,14 +2,21 @@ package com.linda.jetcd;
 
 public class EtcdResult {
 
+	//data resp
 	private String action;
 	private EtcdNode node;
 	private EtcdNode prevNode;
 
+	//error
 	private Integer errorCode;
 	private String message;
 	private String cause;
 	private int errorIndex;
+	
+	//version
+	private String releaseVersion;
+	private String internalVersion;
+	
 
 	public String getAction() {
 		return action;
@@ -65,6 +72,22 @@ public class EtcdResult {
 
 	public void setErrorIndex(int errorIndex) {
 		this.errorIndex = errorIndex;
+	}
+
+	public String getReleaseVersion() {
+		return releaseVersion;
+	}
+
+	public void setReleaseVersion(String releaseVersion) {
+		this.releaseVersion = releaseVersion;
+	}
+
+	public String getInternalVersion() {
+		return internalVersion;
+	}
+
+	public void setInternalVersion(String internalVersion) {
+		this.internalVersion = internalVersion;
 	}
 
 }

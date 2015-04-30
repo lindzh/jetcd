@@ -4,14 +4,17 @@ import java.util.List;
 
 public class EtcdNode {
 	
+	//key
 	private String key;
 	private long createdIndex;
 	private long modifiedIndex;
 	private String value;
 
+	//erpire
 	private String expiration;
 	private Integer ttl;
 
+	//directory
 	private boolean dir;
 	private List<EtcdNode> nodes;
 

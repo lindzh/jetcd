@@ -40,7 +40,10 @@ public class JSONUtils {
 		}
 	}
 
-	public static String toJsonString(Object obj) {
+	public static String toJSON(Object obj) {
+		if(obj==null){
+			return null;
+		}
 		if (obj instanceof Collection||obj.getClass().isArray()) {
 			JSONArray jsonArray = JSONArray.fromObject(obj);
 			return jsonArray.toString();
