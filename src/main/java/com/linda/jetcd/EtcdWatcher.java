@@ -7,9 +7,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class EtcdWatcher implements Runnable{
 	
-	private LinkedList<EtcdFuture> futures = new LinkedList<EtcdFuture>();
+	private LinkedList<EtcdChangeResult> futures = new LinkedList<EtcdChangeResult>();
 	
-	private Map<EtcdFuture, EtcdWatchCallback> futureCallbackMap = new ConcurrentHashMap<EtcdFuture, EtcdWatchCallback>();
+	private Map<EtcdChangeResult, EtcdWatchCallback> futureCallbackMap = new ConcurrentHashMap<EtcdChangeResult, EtcdWatchCallback>();
 
 	private Thread checkThread;
 	
@@ -22,7 +22,7 @@ public class EtcdWatcher implements Runnable{
 		}
 	}
 	
-	public void addCallback(EtcdFuture future,EtcdWatchCallback callback){
+	public void addCallback(EtcdChangeResult future,EtcdWatchCallback callback){
 		futures.offer(future);
 		futureCallbackMap.put(future, callback);
 	}
@@ -30,7 +30,7 @@ public class EtcdWatcher implements Runnable{
 	public void run() {
 		while(!stop.get()){
 			if(futures.size()>0){
-				EtcdFuture future = futures.peek();
+				EtcdChangeResult future = futures.peek();
 				while(future!=null){
 					if(future!=null){
 						futures.pop();

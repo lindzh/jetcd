@@ -1,36 +1,70 @@
 package com.linda.jetcd;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 
 public class HttpResponseMeta {
-
-	private int responseCode;
-	private String responseMessage;
-	private String responseText;
-	private String contentType;
+	
+	private int statusCode;
 	private String encode;
+	private byte[] response;
+	private String contentType;
 
-	public String getResponseMessage() {
-		return responseMessage;
+	public int getStatusCode() {
+		return statusCode;
 	}
 
-	public void setResponseMessage(String responseMessage) {
-		this.responseMessage = responseMessage;
+	public void setStatusCode(int statusCode) {
+		this.statusCode = statusCode;
 	}
 
-	public String getResponseText() {
-		return responseText;
+	public String getEncode() {
+		return encode;
 	}
 
-	public void setResponseText(String responseText) {
-		this.responseText = responseText;
+	public void setEncode(String encode) {
+		this.encode = encode;
 	}
 
-	public int getResponseCode() {
-		return responseCode;
-	}
-
-	public void setResponseCode(int responseCode) {
-		this.responseCode = responseCode;
+	public String getResponseAsString() {
+		if (response != null) {
+			if (encode != null) {
+				try {
+					return new String(response, encode);
+				} catch (UnsupportedEncodingException e) {
+					e.printStackTrace();
+					return null;
+				}
+			} else {
+				return new String(response);
+			}
+		} else {
+			return null;
+		}
 	}
 	
+	public long getResponseSize(){
+		return response.length;
+	}
+	
+	public InputStream getResponseAsInputStream(){
+		return new ByteArrayInputStream(response);
+	}
+
+	public void setResponse(byte[] response) {
+		this.response = response;
+	}
+
+	public byte[] getResponseAsBytes() {
+		return response;
+	}
+
+	public String getContentType() {
+		return contentType;
+	}
+
+	public void setContentType(String contentType) {
+		this.contentType = contentType;
+	}
 }

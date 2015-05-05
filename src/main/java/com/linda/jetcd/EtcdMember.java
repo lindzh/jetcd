@@ -8,6 +8,8 @@ public class EtcdMember {
 	private String name;
 	private List<String> peerURLs;
 	private List<String> clientURLs;
+	
+	private String message;
 
 	public String getId() {
 		return id;
@@ -39,6 +41,10 @@ public class EtcdMember {
 
 	public void setClientURLs(List<String> clientURLs) {
 		this.clientURLs = clientURLs;
+	}
+	
+	public boolean isSuccess(){
+		return message==null;
 	}
 
 }

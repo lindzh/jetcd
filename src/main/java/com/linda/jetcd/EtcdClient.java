@@ -22,8 +22,6 @@ public class EtcdClient implements EtcdAdminClient{
 	
 	private EtcdWatcher watcher = new EtcdWatcher();
 	
-	private int watchTimeOut = 300000;
-	
 	public void start(){
 		watcher.start();
 	}
@@ -51,7 +49,7 @@ public class EtcdClient implements EtcdAdminClient{
 	
 	private EtcdResult parse(HttpResponseMeta response){
 		if(response!=null){
-			String responseAsString = response.getResponseMessage();
+			String responseAsString = response.getResponseAsString();
 			return JSONUtils.fromJSON(responseAsString, EtcdResult.class);
 		}else{
 			throw new EtcdException("can't get response");
@@ -63,13 +61,9 @@ public class EtcdClient implements EtcdAdminClient{
 	}
 	
 	public EtcdResult getVersion(){
-		try {
-			String url = this.genUrl("","/version");
-			HttpResponseMeta responseMeta = JdkHttpUtils.httpGet(url, null, null);
-			return this.parse(responseMeta);
-		} catch (IOException e) {
-			return this.handleIOException(e);
-		}
+		String url = this.genUrl("","/version");
+		HttpResponseMeta responseMeta = WebHttpUtils.httpGet(url, null, null);
+		return this.parse(responseMeta);
 	}
 	
 	public EtcdResult set(String key,String value,boolean dir){
@@ -79,12 +73,8 @@ public class EtcdClient implements EtcdAdminClient{
 		if(dir){
 			params.put("dir", true);
 		}
-		try {
-			HttpResponseMeta responseMeta = JdkHttpUtils.httpPutWithParams(url, params, null);
-			return this.parse(responseMeta);
-		} catch (IOException e) {
-			return this.handleIOException(e);
-		}
+		HttpResponseMeta responseMeta = WebHttpUtils.httpPut(url, null, params);
+		return this.parse(responseMeta);
 	}
 	
 	public EtcdResult set(String key,String value,int ttl,boolean dir){
@@ -97,39 +87,80 @@ public class EtcdClient implements EtcdAdminClient{
 		if(dir){
 			params.put("dir", true);
 		}
-		try {
-			HttpResponseMeta responseMeta = JdkHttpUtils.httpPutWithParams(url, params, null);
-			return this.parse(responseMeta);
-		} catch (IOException e) {
-			return this.handleIOException(e);
-		}
+		HttpResponseMeta responseMeta = WebHttpUtils.httpPut(url, null, params);
+		return this.parse(responseMeta);
 	}
 	
 	public EtcdResult get(String key){
 		String url = this.genUrl("/v2/keys",key);
-		try {
-			HttpResponseMeta responseMeta = JdkHttpUtils.httpGet(url, null, null);
-			return this.parse(responseMeta);
-		} catch (IOException e) {
-			return this.handleIOException(e);
-		}
+		HttpResponseMeta responseMeta = WebHttpUtils.httpGet(url, null, null);
+		return this.parse(responseMeta);
 	}
 	
 	public EtcdResult del(String key,boolean dir,boolean recursive){
 		String url = this.genUrl("/v2/keys",key);
-		try {
-			Map<String, Object> params = new HashMap<String, Object>();
-			if(dir){
-				params.put("dir", dir);
-				if(recursive){
-					params.put("recursive", recursive);
-				}
+		Map<String, Object> params = new HashMap<String, Object>();
+		if(dir){
+			params.put("dir", dir);
+			if(recursive){
+				params.put("recursive", recursive);
 			}
-			HttpResponseMeta responseMeta = JdkHttpUtils.httpDelete(url, params, null);
-			return this.parse(responseMeta);
-		} catch (IOException e) {
-			return this.handleIOException(e);
 		}
+		HttpResponseMeta responseMeta = WebHttpUtils.httpDelete(url, null, params);
+		return this.parse(responseMeta);
+	}
+	
+	/**
+	 * 获取某一目录下节点
+	 * @param dir
+	 * @param recursive
+	 * @return
+	 */
+	public EtcdResult children(String dir,boolean recursive,boolean sorted){
+		String url = this.genUrl("/v2/keys",dir);
+		Map<String, Object> params = new HashMap<String,Object>();
+		if(recursive){
+			params.put("recursive", recursive);
+		}
+		if(sorted){
+			params.put("sorted", sorted);
+		}
+		HttpResponseMeta responseMeta = WebHttpUtils.httpGet(url, null, params);
+		return this.parse(responseMeta);
+	}
+	
+	/**
+	 * 创建队列，用于获取锁，无超时时间
+	 * @param queue
+	 * @param value
+	 * @return
+	 */
+	public EtcdResult queue(String queue,String value){
+		String url = this.genUrl("/v2/keys",queue);
+		Map<String, Object> params = new HashMap<String,Object>();
+		if(value!=null){
+			params.put("value", value);
+		}
+		HttpResponseMeta responseMeta = WebHttpUtils.httpPost(url, null, params);
+		return this.parse(responseMeta);
+	}
+	
+	/**
+	 * 创建有序队列，用于获取锁，同时设置ttl超时时间
+	 * @param queue
+	 * @param value
+	 * @param ttl
+	 * @return
+	 */
+	public EtcdResult queue(String queue,String value,int ttl){
+		String url = this.genUrl("/v2/keys",queue);
+		Map<String, Object> params = new HashMap<String,Object>();
+		if(value!=null){
+			params.put("value", value);
+		}
+		params.put("ttl", ttl);
+		HttpResponseMeta responseMeta = WebHttpUtils.httpPost(url, null, params);
+		return this.parse(responseMeta);
 	}
 	
 	/**
@@ -141,7 +172,7 @@ public class EtcdClient implements EtcdAdminClient{
 	public void watch(String key,EtcdWatchCallback callback){
 		final String url = this.genUrl("/v2/keys", key);
 		final Map<String, Object> params = new HashMap<String, Object>();
-		final EtcdFuture future = new EtcdFuture();
+		final EtcdChangeResult future = new EtcdChangeResult();
 		future.setKey(key);
 		future.setUrl(url);
 		params.put("wait", true);
@@ -149,7 +180,7 @@ public class EtcdClient implements EtcdAdminClient{
 		Thread executeThread = threadFactory.newThread(new Runnable() {
 			public void run() {
 				try {
-					HttpResponseMeta responseMeta = JdkHttpUtils.httpGet(url,params, null,watchTimeOut);
+					HttpResponseMeta responseMeta = WebHttpUtils.httpGet(url, null, params);
 					EtcdResult etcdResult = EtcdClient.this.parse(responseMeta);
 					future.setResult(etcdResult);
 					future.setDone(true);
@@ -163,120 +194,131 @@ public class EtcdClient implements EtcdAdminClient{
 		executeThread.start();
 	}
 	
-	public EtcdResult compareAndSwap(String key,String prevValue,String value){
+	public EtcdResult cas(String key,String value,boolean dir,boolean prevExist){
+		String url = this.genUrl("/v2/keys",key);
+		Map<String, Object> params = new HashMap<String,Object>();
+		params.put("value", value);
+		if(dir){
+			params.put("dir", true);
+		}
+		params.put("prevExist", prevExist);
+		HttpResponseMeta responseMeta = WebHttpUtils.httpPut(url, null, params);
+		return this.parse(responseMeta);
+	}
+	
+	public EtcdResult cas(String key,String value,int ttl,boolean dir,boolean prevExist){
+		String url = this.genUrl("/v2/keys",key);
+		Map<String, Object> params = new HashMap<String,Object>();
+		if(value!=null){
+			params.put("value", value);
+		}
+		params.put("ttl", ttl);
+		if(dir){
+			params.put("dir", true);
+		}
+		params.put("prevExist", prevExist);
+		HttpResponseMeta responseMeta = WebHttpUtils.httpPut(url, null, params);
+		return this.parse(responseMeta);
+	}
+	
+	public EtcdResult cas(String key,String value,boolean dir,String prevValue){
+		String url = this.genUrl("/v2/keys",key);
+		Map<String, Object> params = new HashMap<String,Object>();
+		params.put("value", value);
+		if(dir){
+			params.put("dir", true);
+		}
+		params.put("prevValue", prevValue);
+		HttpResponseMeta responseMeta = WebHttpUtils.httpPut(url, null, params);
+		return this.parse(responseMeta);
+	}
+	
+	public EtcdResult cas(String key,String value,int ttl,boolean dir,String prevValue){
+		String url = this.genUrl("/v2/keys",key);
+		Map<String, Object> params = new HashMap<String,Object>();
+		if(value!=null){
+			params.put("value", value);
+		}
+		params.put("ttl", ttl);
+		if(dir){
+			params.put("dir", true);
+		}
+		params.put("prevValue", prevValue);
+		HttpResponseMeta responseMeta = WebHttpUtils.httpPut(url, null, params);
+		return this.parse(responseMeta);
+	}
+	
+	public EtcdResult cas(String key,String value,boolean dir,int prevIndex){
+		String url = this.genUrl("/v2/keys",key);
+		Map<String, Object> params = new HashMap<String,Object>();
+		params.put("value", value);
+		if(dir){
+			params.put("dir", true);
+		}
+		params.put("prevIndex", prevIndex);
+		HttpResponseMeta responseMeta = WebHttpUtils.httpPut(url, null, params);
+		return this.parse(responseMeta);
+	}
+	
+	public EtcdResult cas(String key,String value,int ttl,boolean dir,int prevIndex){
+		String url = this.genUrl("/v2/keys",key);
+		Map<String, Object> params = new HashMap<String,Object>();
+		if(value!=null){
+			params.put("value", value);
+		}
+		params.put("ttl", ttl);
+		if(dir){
+			params.put("dir", true);
+		}
+		params.put("prevIndex", prevIndex);
+		HttpResponseMeta responseMeta = WebHttpUtils.httpPut(url, null, params);
+		return this.parse(responseMeta);
+	}
+	
+	public EtcdResult cad(String key,String prevValue,String value){
 		String url = this.genUrl("/v2/keys",key);
 		Map<String, Object> params = new HashMap<String,Object>();
 		params.put("prevValue", prevValue);
 		params.put("value", value);
-		try {
-			HttpResponseMeta responseMeta = JdkHttpUtils.httpPutWithParams(url, params, null);
-			return this.parse(responseMeta);
-		} catch (IOException e) {
-			return this.handleIOException(e);
-		}
+		HttpResponseMeta responseMeta = WebHttpUtils.httpPut(url, null, params);
+		return this.parse(responseMeta);
 	}
 	
-	public EtcdResult compareAndSwap(String key,boolean prevExist,String value){
+	public EtcdResult cad(String key,boolean prevExist,String value){
 		String url = this.genUrl("/v2/keys",key);
 		Map<String, Object> params = new HashMap<String,Object>();
 		params.put("prevExist", prevExist);
 		params.put("value", value);
-		try {
-			HttpResponseMeta responseMeta = JdkHttpUtils.httpPutWithParams(url, params, null);
-			return this.parse(responseMeta);
-		} catch (IOException e) {
-			return this.handleIOException(e);
-		}
+		HttpResponseMeta responseMeta = WebHttpUtils.httpPut(url, null, params);
+		return this.parse(responseMeta);
 	}
 
-	public EtcdResult compareAndSwap(String key,int prevIndex,String value){
+	public EtcdResult cad(String key,int prevIndex,String value){
 		String url = this.genUrl("/v2/keys",key);
 		Map<String, Object> params = new HashMap<String,Object>();
 		params.put("prevIndex", prevIndex);
 		params.put("value", value);
-		try {
-			HttpResponseMeta responseMeta = JdkHttpUtils.httpPutWithParams(url, params, null);
-			return this.parse(responseMeta);
-		} catch (IOException e) {
-			return this.handleIOException(e);
-		}
-	}
-	
-	
-	public EtcdResult compareAndDelete(String key,String prevValue,String value){
-		String url = this.genUrl("/v2/keys",key);
-		Map<String, Object> params = new HashMap<String,Object>();
-		params.put("prevValue", prevValue);
-		params.put("value", value);
-		try {
-			HttpResponseMeta responseMeta = JdkHttpUtils.httpPutWithParams(url, params, null);
-			return this.parse(responseMeta);
-		} catch (IOException e) {
-			return this.handleIOException(e);
-		}
-	}
-	
-	public EtcdResult compareAndDelete(String key,boolean prevExist,String value){
-		String url = this.genUrl("/v2/keys",key);
-		Map<String, Object> params = new HashMap<String,Object>();
-		params.put("prevExist", prevExist);
-		params.put("value", value);
-		try {
-			HttpResponseMeta responseMeta = JdkHttpUtils.httpPutWithParams(url, params, null);
-			return this.parse(responseMeta);
-		} catch (IOException e) {
-			return this.handleIOException(e);
-		}
-	}
-
-	public EtcdResult compareAndDelete(String key,int prevIndex,String value){
-		String url = this.genUrl("/v2/keys",key);
-		Map<String, Object> params = new HashMap<String,Object>();
-		params.put("prevIndex", prevIndex);
-		params.put("value", value);
-		try {
-			HttpResponseMeta responseMeta = JdkHttpUtils.httpPutWithParams(url, params, null);
-			return this.parse(responseMeta);
-		} catch (IOException e) {
-			return this.handleIOException(e);
-		}
-	}
-	
-	public EtcdResult children(String dir,boolean recursive){
-		String url = this.genUrl("/v2/keys",dir);
-		Map<String, Object> params = new HashMap<String,Object>();
-		if(recursive){
-			params.put("recursive", recursive);
-		}
-		try {
-			HttpResponseMeta responseMeta = JdkHttpUtils.httpGet(url, params, null);
-			return this.parse(responseMeta);
-		} catch (IOException e) {
-			return this.handleIOException(e);
-		}
+		HttpResponseMeta responseMeta = WebHttpUtils.httpPut(url, null, params);
+		return this.parse(responseMeta);
 	}
 	
 	public List<EtcdMember> members(){
 		String url = this.genUrl("/v2/members","");
-		try {
-			HttpResponseMeta responseMeta = JdkHttpUtils.httpGet(url, null, null);
-			if(responseMeta!=null){
-				if(responseMeta.getResponseCode()==200){
-					String resp = responseMeta.getResponseMessage();
-					JSONObject jsonObject = JSONUtils.fromJSON(resp, JSONObject.class);
-					JSONArray array = jsonObject.getJSONArray("members");
-					Collection collection = JSONArray.toCollection(array, EtcdMember.class);
-					List<EtcdMember> members = new ArrayList<EtcdMember>();
-					members.addAll(collection);
-					return members;
-				}else{
-					throw new EtcdException("status code:"+responseMeta.getResponseCode()+" resp:"+responseMeta.getResponseMessage());
-				}
+		HttpResponseMeta responseMeta = WebHttpUtils.httpGet(url, null, null);
+		if(responseMeta!=null){
+			if(responseMeta.getStatusCode()==200){
+				String resp = responseMeta.getResponseAsString();
+				JSONObject jsonObject = JSONUtils.fromJSON(resp, JSONObject.class);
+				JSONArray array = jsonObject.getJSONArray("members");
+				Collection collection = JSONArray.toCollection(array, EtcdMember.class);
+				List<EtcdMember> members = new ArrayList<EtcdMember>();
+				members.addAll(collection);
+				return members;
 			}else{
-				throw new EtcdException("null response");
+				throw new EtcdException("status code:"+responseMeta.getStatusCode()+" resp:"+responseMeta.getResponseAsString());
 			}
-		} catch (IOException e) {
-			throw new EtcdException(e);
+		}else{
+			throw new EtcdException("null response");
 		}
 	}
 	
@@ -285,37 +327,30 @@ public class EtcdClient implements EtcdAdminClient{
 		HashMap<String, Object> body = new HashMap<String,Object>();
 		body.put("peerURLs", members);
 		String json = JSONUtils.toJSON(body);
-		try {
-			HttpResponseMeta responseMeta = JdkHttpUtils.httpPostWithBody(url, json, JdkHttpUtils.HEAD_JSON);
-			if(responseMeta!=null){
-				if(responseMeta.getResponseCode()==200){
-					String resp = responseMeta.getResponseMessage();
-					return JSONUtils.fromJSON(resp, EtcdMember.class);
-				}else{
-					throw new EtcdException("status code:"+responseMeta.getResponseCode()+" resp:"+responseMeta.getResponseMessage());
-				}
+		HttpResponseMeta responseMeta = WebHttpUtils.httpPost(url, WebHttpUtils.HEAD_JSON, json);
+		if(responseMeta!=null){
+			int code = responseMeta.getStatusCode();
+			if(code>=200&&code<300){
+				String resp = responseMeta.getResponseAsString();
+				return JSONUtils.fromJSON(resp, EtcdMember.class);
 			}else{
-				throw new EtcdException("null response");
+				throw new EtcdException("status code:"+responseMeta.getStatusCode()+" resp:"+responseMeta.getResponseAsString());
 			}
-		} catch (IOException e) {
-			throw new EtcdException(e);
+		}else{
+			throw new EtcdException("null response");
 		}
 	}
 	
 	public boolean delMember(String id){
 		String url = this.genUrl("/v2/members/",id);
-		try {
-			HttpResponseMeta responseMeta = JdkHttpUtils.httpDelete(url, null, null);
-			if(responseMeta!=null){
-				int code = responseMeta.getResponseCode();
-				if(code/200==1&&code%200<100){
-					return true;
-				}
+		HttpResponseMeta responseMeta = WebHttpUtils.httpDelete(url, null, null);
+		if(responseMeta!=null){
+			int code = responseMeta.getStatusCode();
+			if(code/200==1&&code%200<100){
+				return true;
 			}
-			return false;
-		} catch (IOException e) {
-			throw new EtcdException(e);
 		}
+		return false;
 	}
 	
 	public EtcdMember setMembers(String id,List<String> members){
@@ -323,20 +358,13 @@ public class EtcdClient implements EtcdAdminClient{
 		HashMap<String, Object> body = new HashMap<String,Object>();
 		body.put("peerURLs", members);
 		String json = JSONUtils.toJSON(body);
-		try {
-			HttpResponseMeta responseMeta = JdkHttpUtils.httpPutWithBody(url, json, JdkHttpUtils.HEAD_JSON);
-			if(responseMeta!=null){
-				if(responseMeta.getResponseCode()==200){
-					String resp = responseMeta.getResponseMessage();
-					return JSONUtils.fromJSON(resp, EtcdMember.class);
-				}else{
-					throw new EtcdException("status code:"+responseMeta.getResponseCode()+" resp:"+responseMeta.getResponseMessage());
-				}
-			}else{
-				throw new EtcdException("null response");
-			}
-		} catch (IOException e) {
-			throw new EtcdException(e);
+		HttpResponseMeta responseMeta = WebHttpUtils.httpPut(url, WebHttpUtils.HEAD_JSON, json);
+		if(responseMeta!=null){
+			int code = responseMeta.getStatusCode();
+			String resp = responseMeta.getResponseAsString();
+			return JSONUtils.fromJSON(resp, EtcdMember.class);
+		}else{
+			throw new EtcdException("null response");
 		}
 	}
 }

@@ -17,6 +17,9 @@ public class EtcdResult {
 	private String releaseVersion;
 	private String internalVersion;
 	
+	public boolean isSuccess(){
+		return errorCode==null;
+	}
 
 	public String getAction() {
 		return action;

@@ -2,7 +2,7 @@ package com.linda.jetcd;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class EtcdFuture {
+public class EtcdChangeResult {
 
 	private String key;
 	private String url;

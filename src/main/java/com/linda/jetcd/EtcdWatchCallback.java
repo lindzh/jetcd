@@ -2,6 +2,6 @@ package com.linda.jetcd;
 
 public interface EtcdWatchCallback {
 	
-	public void onChange(EtcdFuture future);
+	public void onChange(EtcdChangeResult future);
 
 }

@@ -17,7 +17,7 @@ public class EtcdClientTest {
 		System.out.println("init get:" +JSONUtils.toJSON(result));
 		result = client.set(key, "11111111", false);
 		System.out.println("set" + JSONUtils.toJSON(result));
-		client.set(key, null, 10, false);
+		result = client.set(key, null, 10, false);
 		System.out.println("set ttl:"+JSONUtils.toJSON(result));
 		Thread.sleep(11000);
 		result = client.get(key);
@@ -32,18 +32,21 @@ public class EtcdClientTest {
 		System.out.println("after del:"+JSONUtils.toJSON(result));
 	}
 	
-	public void testMembers(){
+	public void testMembers() throws InterruptedException{
 		List<EtcdMember> members = client.members();
 		System.out.println("init"+JSONUtils.toJSON(members));
-		EtcdMember member = members.get(1);
+		EtcdMember member = members.get(2);
 		client.delMember(member.getId());
-		client.members();
+		Thread.sleep(10000);
+		members = client.members();
 		System.out.println("after del:"+JSONUtils.toJSON(members));
 		client.addMembers(member.getPeerURLs());
-		client.members();
+		Thread.sleep(10000);
+		members = client.members();
 		System.out.println("after add"+JSONUtils.toJSON(members));
 		client.setMembers(member.getId(), member.getPeerURLs());
-		client.members();
+		Thread.sleep(10000);
+		members = client.members();
 		System.out.println("after set"+JSONUtils.toJSON(members));
 	}
 	
@@ -53,16 +56,15 @@ public class EtcdClientTest {
 	
 	public void testcas(){
 		String key = "/testCas";
-		client.compareAndSwap(key, false, "testCas-1");
+		client.cas(key, "testCas-1", false, false);
 		EtcdResult result = client.get(key);
 		System.out.println("init get:" +JSONUtils.toJSON(result));
-		client.compareAndSwap(key, false, "testCas-2");
+		client.cas(key, "testCas-2", false, false);
 		result = client.get(key);
 		System.out.println("cas noexist get:" +JSONUtils.toJSON(result));
-		client.compareAndSwap(key, true, "testCas-2");
+		client.cas(key, "testCas-2", false, true);
 		result = client.get(key);
 		System.out.println("cas exist get:" +JSONUtils.toJSON(result));
-		
 	}
 	
 	public void testCallback(){
@@ -73,7 +75,7 @@ public class EtcdClientTest {
 		result = client.get(key);
 		System.out.println("set:" +JSONUtils.toJSON(result));
 		client.watch(key, new EtcdWatchCallback() {
-			public void onChange(EtcdFuture future) {
+			public void onChange(EtcdChangeResult future) {
 				EtcdResult etcdResult = future.getResult();
 				if(etcdResult!=null){
 					System.out.println("change:" +JSONUtils.toJSON(etcdResult));
@@ -88,9 +90,9 @@ public class EtcdClientTest {
 		clientTest.client.start();
 //		clientTest.testVersion();
 //		clientTest.testKey();
-//		clientTest.testMembers();clientTest
+		clientTest.testMembers();
 //		clientTest.testCallback();
-		clientTest.testcas();
+//		clientTest.testcas();
 	}
 	
 	
