@@ -14,7 +14,6 @@ import java.util.Set;
 
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
-import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.StatusLine;
@@ -22,18 +21,13 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpDelete;
+import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
-import org.apache.http.conn.routing.HttpRoute;
-import org.apache.http.conn.scheme.PlainSocketFactory;
-import org.apache.http.conn.scheme.Scheme;
-import org.apache.http.conn.scheme.SchemeRegistry;
-import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.impl.conn.PoolingClientConnectionManager;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.log4j.Logger;
@@ -170,21 +164,28 @@ public class WebHttpUtils {
 		throw new EtcdException("http response null");
 	}
 	
+	private static void setBodyParameters(HttpEntityEnclosingRequestBase request,Map<String, Object> params) throws UnsupportedEncodingException{
+		if (params != null) {
+			List<NameValuePair> list = new LinkedList<NameValuePair>();
+			Set<String> keys = params.keySet();
+			for (String key : keys) {
+				Object v = params.get(key);
+				if(v!=null){
+					list.add(new BasicNameValuePair(key, params.get(key).toString()));
+				}
+			}
+			HttpEntity entity = new UrlEncodedFormEntity(list);
+			request.setEntity(entity);
+		}
+	}
+	
 	public static HttpResponseMeta httpPut(String url, Map<String, String> headers, Map<String, Object> params) {
 		String newUrl = parseURL(url);
 		HttpPut put = new HttpPut(newUrl);
 		setHeaders(put, headers);
 		HttpClient client = getInstance();
 		try {
-			if (params != null) {
-				List<NameValuePair> list = new LinkedList<NameValuePair>();
-				Set<String> keys = params.keySet();
-				for (String key : keys) {
-					list.add(new BasicNameValuePair(key, params.get(key).toString()));
-				}
-				HttpEntity entity = new UrlEncodedFormEntity(list);
-				put.setEntity(entity);
-			}
+			WebHttpUtils.setBodyParameters(put, params);
 			HttpResponse response = client.execute(put);
 			return getResponse(response);
 		} catch (ClientProtocolException e) {
@@ -223,15 +224,15 @@ public class WebHttpUtils {
 
 	public static HttpResponseMeta httpPut(String url, Map<String, String> headers, String body) {
 		String newUrl = parseURL(url);
-		HttpPost post = new HttpPost(newUrl);
-		setHeaders(post, headers);
+		HttpPut put = new HttpPut(newUrl);
+		setHeaders(put, headers);
 		HttpClient client = getInstance();
 		try {
 			if (body != null) {
 				StringEntity entity = new StringEntity(body);
-				post.setEntity(entity);
+				put.setEntity(entity);
 			}
-			HttpResponse response = client.execute(post);
+			HttpResponse response = client.execute(put);
 			return getResponse(response);
 		} catch (ClientProtocolException e) {
 			WebHttpUtils.handleNetException(e);
@@ -243,20 +244,12 @@ public class WebHttpUtils {
 
 	public static HttpResponseMeta httpPost(String url, Map<String, String> headers, Map<String, Object> params) {
 		String newUrl = parseURL(url);
-		HttpPut put = new HttpPut(newUrl);
-		setHeaders(put, headers);
+		HttpPost post = new HttpPost(newUrl);
+		setHeaders(post, headers);
 		HttpClient client = getInstance();
 		try {
-			if (params != null) {
-				List<NameValuePair> list = new LinkedList<NameValuePair>();
-				Set<String> keys = params.keySet();
-				for (String key : keys) {
-					list.add(new BasicNameValuePair(key, params.get(key).toString()));
-				}
-				HttpEntity entity = new UrlEncodedFormEntity(list);
-				put.setEntity(entity);
-			}
-			HttpResponse response = client.execute(put);
+			WebHttpUtils.setBodyParameters(post, params);
+			HttpResponse response = client.execute(post);
 			return getResponse(response);
 		} catch (ClientProtocolException e) {
 			WebHttpUtils.handleNetException(e);

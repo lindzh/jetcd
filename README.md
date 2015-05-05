@@ -5,39 +5,28 @@ watch auto notify for change,easy to use
 >simple setting config operation
 
 ```java
-String key = "/testKey";
-EtcdResult result = client.get(key);
-System.out.println("init get:" +JSONUtils.toJSON(result));
-result = client.set(key, "11111111", false);
-System.out.println("set" + JSONUtils.toJSON(result));
-result = client.set(key, null, 10, false);
-System.out.println("set ttl:"+JSONUtils.toJSON(result));
-Thread.sleep(11000);
-result = client.get(key);
-System.out.println("after ttl get:"+JSONUtils.toJSON(result));
-result = client.set(key, "222222", false);
-System.out.println("new set:"+JSONUtils.toJSON(result));
-result = client.get(key);
-System.out.println("new get:"+JSONUtils.toJSON(result));
-result = client.del(key, false, false);
-System.out.println("del:"+JSONUtils.toJSON(result));
-result = client.get(key);
-System.out.println("after del:"+JSONUtils.toJSON(result));
+	String key = "/testKey";
+	EtcdResult result = client.get(key);
+	result = client.set(key, "11111111");
+	result = client.set(key, null, 10);
+	Thread.sleep(11000);
+	result = client.get(key);
+	result = client.set(key, "222222");
+	result = client.get(key);
+	result = client.del(key);
+	result = client.get(key);
 ```
 
 >cas operation
 
 ```java
 String key = "/testCas";
-client.cas(key, "testCas-1", false, false);
+client.cas(key, "testCas-1", false);
 EtcdResult result = client.get(key);
-System.out.println("init get:" +JSONUtils.toJSON(result));
-client.cas(key, "testCas-2", false, false);
+client.cas(key, "testCas-2", false);
 result = client.get(key);
-System.out.println("cas noexist get:" +JSONUtils.toJSON(result));
-client.cas(key, "testCas-2", false, true);
+client.cas(key, "testCas-2", true);
 result = client.get(key);
-System.out.println("cas exist get:" +JSONUtils.toJSON(result));
 ```
 
 
@@ -46,7 +35,6 @@ System.out.println("cas exist get:" +JSONUtils.toJSON(result));
 ```java
 String key = "/testCallback";
 EtcdResult result = client.get(key);
-System.out.println("init get:" +JSONUtils.toJSON(result));
 result = client.set(key, "11111111", false);
 result = client.get(key);
 System.out.println("set:" +JSONUtils.toJSON(result));
@@ -59,4 +47,46 @@ client.watch(key, new EtcdWatchCallback() {
 	}
 });
 
+```
+
+>dir operation
+
+```java
+String dirKey = "/dirTestKey";
+//delete dir
+EtcdResult result = client.delDir(dirKey, true);
+//create dir
+result = client.dir(dirKey);
+//add sub dir
+result = client.dir(dirKey+"/subdir1");
+result = client.dir(dirKey+"/subdir2");
+result = client.children(dirKey, true, false);
+result = client.delDir(dirKey+"/subdir2", true);
+result = client.children(dirKey, true, false);
+result = client.delDir(dirKey, true);
+result = client.children(dirKey, true, false);
+```
+
+>suquence ordered queue for lock
+
+```java
+String queue = "/testQueue";
+//queue name is a directory
+client.delDir(queue, true);
+EtcdResult result = client.queue(queue, "job1");
+result = client.queue(queue, "job2");
+EtcdResult job2 = result;
+result = client.queue(queue, "job3");
+String delJob3 = result.getNode().getKey();
+result = client.children(queue, true, true);
+result = client.queue(queue, "job-ttl",10);
+result = client.children(queue, true, true);
+Thread.currentThread().sleep(10000);
+result = client.children(queue, true, true);
+//set key ttl
+EtcdResult etcdResult = client.set(job2.getNode().getKey(), job2.getNode().getValue(), 6);
+Thread.currentThread().sleep(10000);
+result = client.children(queue, true, true);
+client.del(delJob3);
+result = client.children(queue, true, true);
 ```

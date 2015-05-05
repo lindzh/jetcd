@@ -66,27 +66,34 @@ public class EtcdClient implements EtcdAdminClient{
 		return this.parse(responseMeta);
 	}
 	
-	public EtcdResult set(String key,String value,boolean dir){
+	/**
+	 * create a dir or set a key value,when create dir , value is not supported
+	 * @param key
+	 * @param value
+	 * @param dir
+	 * @return
+	 */
+	public EtcdResult set(String key,String value){
 		String url = this.genUrl("/v2/keys",key);
 		Map<String, Object> params = new HashMap<String,Object>();
 		params.put("value", value);
-		if(dir){
-			params.put("dir", true);
-		}
 		HttpResponseMeta responseMeta = WebHttpUtils.httpPut(url, null, params);
 		return this.parse(responseMeta);
 	}
 	
-	public EtcdResult set(String key,String value,int ttl,boolean dir){
+	/**
+	 * create a dir or set a key value,when create dir , value is not supported
+	 * @param key
+	 * @param value
+	 * @param ttl
+	 * @param dir
+	 * @return
+	 */
+	public EtcdResult set(String key,String value,int ttl){
 		String url = this.genUrl("/v2/keys",key);
 		Map<String, Object> params = new HashMap<String,Object>();
-		if(value!=null){
-			params.put("value", value);
-		}
 		params.put("ttl", ttl);
-		if(dir){
-			params.put("dir", true);
-		}
+		params.put("value", value);
 		HttpResponseMeta responseMeta = WebHttpUtils.httpPut(url, null, params);
 		return this.parse(responseMeta);
 	}
@@ -97,14 +104,37 @@ public class EtcdClient implements EtcdAdminClient{
 		return this.parse(responseMeta);
 	}
 	
-	public EtcdResult del(String key,boolean dir,boolean recursive){
+	public EtcdResult del(String key){
+		String url = this.genUrl("/v2/keys",key);
+		HttpResponseMeta responseMeta = WebHttpUtils.httpDelete(url, null, null);
+		return this.parse(responseMeta);
+	}
+	
+	/**
+	 * this method is used to create a dir
+	 * @param key
+	 * @return
+	 */
+	public EtcdResult dir(String key){
+		String url = this.genUrl("/v2/keys",key);
+		Map<String, Object> params = new HashMap<String,Object>();
+		params.put("dir", true);
+		HttpResponseMeta responseMeta = WebHttpUtils.httpPut(url, null, params);
+		return this.parse(responseMeta);
+	}
+	
+	/**
+	 * del a dir
+	 * @param key
+	 * @param recursive
+	 * @return
+	 */
+	public EtcdResult delDir(String key,boolean recursive){
 		String url = this.genUrl("/v2/keys",key);
 		Map<String, Object> params = new HashMap<String, Object>();
-		if(dir){
-			params.put("dir", dir);
-			if(recursive){
-				params.put("recursive", recursive);
-			}
+		params.put("dir", true);
+		if(recursive){
+			params.put("recursive", recursive);
 		}
 		HttpResponseMeta responseMeta = WebHttpUtils.httpDelete(url, null, params);
 		return this.parse(responseMeta);
@@ -194,82 +224,64 @@ public class EtcdClient implements EtcdAdminClient{
 		executeThread.start();
 	}
 	
-	public EtcdResult cas(String key,String value,boolean dir,boolean prevExist){
+	public EtcdResult cas(String key,String value,boolean prevExist){
 		String url = this.genUrl("/v2/keys",key);
 		Map<String, Object> params = new HashMap<String,Object>();
 		params.put("value", value);
-		if(dir){
-			params.put("dir", true);
-		}
 		params.put("prevExist", prevExist);
 		HttpResponseMeta responseMeta = WebHttpUtils.httpPut(url, null, params);
 		return this.parse(responseMeta);
 	}
 	
-	public EtcdResult cas(String key,String value,int ttl,boolean dir,boolean prevExist){
+	public EtcdResult cas(String key,String value,int ttl,boolean prevExist){
 		String url = this.genUrl("/v2/keys",key);
 		Map<String, Object> params = new HashMap<String,Object>();
 		if(value!=null){
 			params.put("value", value);
 		}
 		params.put("ttl", ttl);
-		if(dir){
-			params.put("dir", true);
-		}
 		params.put("prevExist", prevExist);
 		HttpResponseMeta responseMeta = WebHttpUtils.httpPut(url, null, params);
 		return this.parse(responseMeta);
 	}
 	
-	public EtcdResult cas(String key,String value,boolean dir,String prevValue){
+	public EtcdResult cas(String key,String value,String prevValue){
 		String url = this.genUrl("/v2/keys",key);
 		Map<String, Object> params = new HashMap<String,Object>();
 		params.put("value", value);
-		if(dir){
-			params.put("dir", true);
-		}
 		params.put("prevValue", prevValue);
 		HttpResponseMeta responseMeta = WebHttpUtils.httpPut(url, null, params);
 		return this.parse(responseMeta);
 	}
 	
-	public EtcdResult cas(String key,String value,int ttl,boolean dir,String prevValue){
+	public EtcdResult cas(String key,String value,int ttl,String prevValue){
 		String url = this.genUrl("/v2/keys",key);
 		Map<String, Object> params = new HashMap<String,Object>();
 		if(value!=null){
 			params.put("value", value);
 		}
 		params.put("ttl", ttl);
-		if(dir){
-			params.put("dir", true);
-		}
 		params.put("prevValue", prevValue);
 		HttpResponseMeta responseMeta = WebHttpUtils.httpPut(url, null, params);
 		return this.parse(responseMeta);
 	}
 	
-	public EtcdResult cas(String key,String value,boolean dir,int prevIndex){
+	public EtcdResult cas(String key,String value,int prevIndex){
 		String url = this.genUrl("/v2/keys",key);
 		Map<String, Object> params = new HashMap<String,Object>();
 		params.put("value", value);
-		if(dir){
-			params.put("dir", true);
-		}
 		params.put("prevIndex", prevIndex);
 		HttpResponseMeta responseMeta = WebHttpUtils.httpPut(url, null, params);
 		return this.parse(responseMeta);
 	}
 	
-	public EtcdResult cas(String key,String value,int ttl,boolean dir,int prevIndex){
+	public EtcdResult cas(String key,String value,int ttl,int prevIndex){
 		String url = this.genUrl("/v2/keys",key);
 		Map<String, Object> params = new HashMap<String,Object>();
 		if(value!=null){
 			params.put("value", value);
 		}
 		params.put("ttl", ttl);
-		if(dir){
-			params.put("dir", true);
-		}
 		params.put("prevIndex", prevIndex);
 		HttpResponseMeta responseMeta = WebHttpUtils.httpPut(url, null, params);
 		return this.parse(responseMeta);
