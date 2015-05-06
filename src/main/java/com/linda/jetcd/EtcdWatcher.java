@@ -3,6 +3,8 @@ package com.linda.jetcd;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class EtcdWatcher implements Runnable{
@@ -14,6 +16,8 @@ public class EtcdWatcher implements Runnable{
 	private Thread checkThread;
 	
 	private AtomicBoolean stop = new AtomicBoolean(false);
+	
+	private ExecutorService executor = Executors.newFixedThreadPool(3);
 	
 	public void start(){
 		if(checkThread==null){
@@ -36,9 +40,14 @@ public class EtcdWatcher implements Runnable{
 						futures.pop();
 					}
 					if(future.isDone()){
-						EtcdWatchCallback callback = futureCallbackMap.get(future);
+						final EtcdWatchCallback callback = futureCallbackMap.get(future);
+						final EtcdChangeResult futureRef = future;
 						if(callback!=null){
-							callback.onChange(future);
+							executor.execute(new Runnable(){
+								public void run() {
+									callback.onChange(futureRef);
+								}
+							});
 						}
 					}else{
 						futures.offer(future);

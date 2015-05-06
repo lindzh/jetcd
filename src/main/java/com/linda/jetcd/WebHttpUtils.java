@@ -26,9 +26,13 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
+import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.nio.client.HttpAsyncClient;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.log4j.Logger;
 
@@ -50,6 +54,8 @@ public class WebHttpUtils {
 	
 	private static int longConnectionTimeout = 300000;//5 min
 	
+	private static 	CloseableHttpAsyncClient httpAsyncClient = HttpAsyncClients.createDefault();
+	
 	private static HttpClient getInstance() {
 		return defaultHttpClient;
 	}
@@ -57,19 +63,24 @@ public class WebHttpUtils {
 	private static HttpClient getLongHttpClient(){
 		return longConnectionHttpClient;
 	}
-
+	
+	private static HttpAsyncClient getHttpAsyncClient(){
+		return httpAsyncClient;
+	}
+	
+	private static void setHttpTimeoutAndConnection(HttpClient client,int timeout){
+		HttpConnectionParams.setConnectionTimeout(client.getParams(), timeout);
+		HttpConnectionParams.setTcpNoDelay(client.getParams(), true);
+		HttpConnectionParams.setSoKeepalive(client.getParams(), true);
+		HttpConnectionParams.setSoTimeout(client.getParams(), timeout);
+	}
+	
 	static {
 		HEAD_JSON.put("Content-Type", "application/json");
 		HEAD_JSON.put("Accept", "application/json");
-		HttpConnectionParams.setConnectionTimeout(defaultHttpClient.getParams(), defaultTimeout);
-		HttpConnectionParams.setTcpNoDelay(defaultHttpClient.getParams(), true);
-		HttpConnectionParams.setSoKeepalive(defaultHttpClient.getParams(), true);
-		HttpConnectionParams.setSoTimeout(defaultHttpClient.getParams(), defaultTimeout);
-		
-		HttpConnectionParams.setConnectionTimeout(longConnectionHttpClient.getParams(), longConnectionTimeout);
-		HttpConnectionParams.setTcpNoDelay(longConnectionHttpClient.getParams(), true);
-		HttpConnectionParams.setSoKeepalive(longConnectionHttpClient.getParams(), true);
-		HttpConnectionParams.setSoTimeout(longConnectionHttpClient.getParams(), longConnectionTimeout);
+		setHttpTimeoutAndConnection(defaultHttpClient,defaultTimeout);
+		setHttpTimeoutAndConnection(longConnectionHttpClient,longConnectionTimeout);
+		httpAsyncClient.start();
 	}
 
 	private static String defaultEncoding = "utf-8";
@@ -135,7 +146,7 @@ public class WebHttpUtils {
 		return defaultEncoding;
 	}
 
-	private static HttpResponseMeta getResponse(HttpResponse response) {
+	public static HttpResponseMeta getResponse(HttpResponse response) {
 		if (response != null) {
 			StatusLine line = response.getStatusLine();
 			if (line != null) {
@@ -331,7 +342,25 @@ public class WebHttpUtils {
 		logger.error("http exception:"+e.getMessage(),e);
 		throw new EtcdException(e);
 	}
-
+	
+	/**
+	 * 发送异步请求回调
+	 * @param url
+	 * @param headers
+	 * @param params
+	 * @param callback
+	 */
+	public static void httpAsyncGet(String url, Map<String, String> headers, Map<String, Object> params,final FutureCallback<HttpResponse> callback){
+		String newUrl = parseURL(url);
+		if (params != null) {
+			newUrl = newUrl + "?" + encodeParams(params);
+		}
+		HttpGet get = new HttpGet(newUrl);
+		setHeaders(get, headers);
+		HttpAsyncClient asyncClient = getHttpAsyncClient();
+		asyncClient.execute(get, callback);
+	}
+	
 	public static HttpResponseMeta httpGet(String url, Map<String, String> headers, Map<String, Object> params) {
 		String newUrl = parseURL(url);
 		if (newUrl == null) {

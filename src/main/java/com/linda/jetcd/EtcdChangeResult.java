@@ -8,7 +8,13 @@ public class EtcdChangeResult {
 	private String url;
 	private EtcdResult result;
 	private AtomicBoolean done = new AtomicBoolean(false);
+	
+	private String failReason;
 
+	public boolean isOk(){
+		return result!=null;
+	}
+	
 	public String getKey() {
 		return key;
 	}
@@ -39,5 +45,13 @@ public class EtcdChangeResult {
 	
 	protected void setDone(boolean doned){
 		done.set(doned);
+	}
+
+	public String getFailReason() {
+		return failReason;
+	}
+
+	public void setFailReason(String failReason) {
+		this.failReason = failReason;
 	}
 }

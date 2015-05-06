@@ -15,7 +15,9 @@ public class EtcdWatchAndExpireTest {
 				client.watch(key, this);
 			}
 		};
+//		client.watch(key, callback);
 		client.watch(key, callback);
+		System.out.println("hahahahah");
 	}
 
 }

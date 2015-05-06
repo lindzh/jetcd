@@ -7,12 +7,15 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
+
+import org.apache.http.HttpResponse;
+import org.apache.http.concurrent.BasicFuture;
+import org.apache.http.concurrent.FutureCallback;
 
 public class EtcdClient implements EtcdAdminClient{
 	
@@ -199,7 +202,7 @@ public class EtcdClient implements EtcdAdminClient{
 	 * @param key
 	 * @param callback
 	 */
-	public void watch(String key,EtcdWatchCallback callback){
+	private void watch0(String key,EtcdWatchCallback callback){
 		final String url = this.genUrl("/v2/keys", key);
 		final Map<String, Object> params = new HashMap<String, Object>();
 		final EtcdChangeResult future = new EtcdChangeResult();
@@ -217,11 +220,51 @@ public class EtcdClient implements EtcdAdminClient{
 				} catch (Exception e) {
 					future.setResult(null);
 					future.setDone(true);
+					future.setFailReason("http request exception:"+e.getMessage());
 					throw new EtcdException(e);
 				}
 			}
 		});
 		executeThread.start();
+	}
+	
+	public void watch(String key,EtcdWatchCallback callback){
+		final String url = this.genUrl("/v2/keys", key);
+		final Map<String, Object> params = new HashMap<String, Object>();
+		final EtcdChangeResult future = new EtcdChangeResult();
+		future.setKey(key);
+		future.setUrl(url);
+		params.put("wait", true);
+		watcher.addCallback(future, callback);
+		FutureCallback<HttpResponse> futureCallback = new FutureCallback<HttpResponse>(){
+			@Override
+			public void cancelled() {
+				future.setResult(null);
+				future.setDone(true);
+				future.setFailReason("http request cancelled");
+			}
+
+			@Override
+			public void completed(HttpResponse response) {
+				try{
+					HttpResponseMeta responseMeta = WebHttpUtils.getResponse(response);
+					EtcdResult etcdResult = EtcdClient.this.parse(responseMeta);
+					future.setResult(etcdResult);
+					future.setDone(true);
+				}catch(Exception e){
+					future.setResult(null);
+					future.setDone(true);
+					future.setFailReason("http request exception:"+e.getMessage());
+				}
+			}
+			@Override
+			public void failed(Exception e) {
+				future.setResult(null);
+				future.setDone(true);
+				future.setFailReason("http request exception:"+e.getMessage());
+			}
+		};
+		WebHttpUtils.httpAsyncGet(url, null, params, futureCallback);
 	}
 	
 	public EtcdResult cas(String key,String value,boolean prevExist){
