@@ -63,7 +63,7 @@ public class EtcdClient implements EtcdAdminClient{
 		return etcdUrl + base + path;
 	}
 	
-	public EtcdResult getVersion(){
+	public EtcdResult version(){
 		String url = this.genUrl("","/version");
 		HttpResponseMeta responseMeta = WebHttpUtils.httpGet(url, null, null);
 		return this.parse(responseMeta);

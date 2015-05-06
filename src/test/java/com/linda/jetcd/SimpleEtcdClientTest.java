@@ -7,7 +7,7 @@ public class SimpleEtcdClientTest {
 	private EtcdClient client;
 	
 	public void testVersion(){
-		EtcdResult version = client.getVersion();
+		EtcdResult version = client.version();
 		System.out.println("version:"+JSONUtils.toJSON(version));
 	}
 	
