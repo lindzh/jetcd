@@ -228,12 +228,25 @@ public class EtcdClient implements EtcdAdminClient{
 		executeThread.start();
 	}
 	
-	public void watch(String key,EtcdWatchCallback callback){
+	public void watchChildren(String dir,boolean recursive,boolean sorted,EtcdWatchCallback callback){
+		Map<String, Object> params = new HashMap<String,Object>();
+		if(recursive){
+			params.put("recursive", recursive);
+		}
+		if(sorted){
+			params.put("sorted", sorted);
+		}
+		this.watch0(dir, params, callback);
+	}
+	
+	private void watch0(String key,Map<String,Object> params,EtcdWatchCallback callback){
 		final String url = this.genUrl("/v2/keys", key);
-		final Map<String, Object> params = new HashMap<String, Object>();
 		final EtcdChangeResult future = new EtcdChangeResult();
 		future.setKey(key);
 		future.setUrl(url);
+		if(params==null){
+			params = new HashMap<String,Object>();
+		}
 		params.put("wait", true);
 		watcher.addCallback(future, callback);
 		FutureCallback<HttpResponse> futureCallback = new FutureCallback<HttpResponse>(){
@@ -265,6 +278,10 @@ public class EtcdClient implements EtcdAdminClient{
 			}
 		};
 		WebHttpUtils.httpAsyncGet(url, null, params, futureCallback);
+	}
+	
+	public void watch(String key,EtcdWatchCallback callback){
+		this.watch0(key, null, callback);
 	}
 	
 	public EtcdResult cas(String key,String value,boolean prevExist){
