@@ -10,12 +10,10 @@ import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 
-import net.sf.json.JSONArray;
-import net.sf.json.JSONObject;
-
 import org.apache.http.HttpResponse;
-import org.apache.http.concurrent.BasicFuture;
 import org.apache.http.concurrent.FutureCallback;
+
+import com.fasterxml.jackson.core.type.TypeReference;
 
 public class EtcdClient implements EtcdAdminClient{
 	
@@ -380,12 +378,9 @@ public class EtcdClient implements EtcdAdminClient{
 		if(responseMeta!=null){
 			if(responseMeta.getStatusCode()==200){
 				String resp = responseMeta.getResponseAsString();
-				JSONObject jsonObject = JSONUtils.fromJSON(resp, JSONObject.class);
-				JSONArray array = jsonObject.getJSONArray("members");
-				Collection collection = JSONArray.toCollection(array, EtcdMember.class);
-				List<EtcdMember> members = new ArrayList<EtcdMember>();
-				members.addAll(collection);
-				return members;
+				Map json = JSONUtils.fromJSON(resp, Map.class);
+				String memberJson = json.get("members").toString();
+				return JSONUtils.fromJSON(memberJson, new TypeReference<List<EtcdMember>>(){});
 			}else{
 				throw new EtcdException("status code:"+responseMeta.getStatusCode()+" resp:"+responseMeta.getResponseAsString());
 			}

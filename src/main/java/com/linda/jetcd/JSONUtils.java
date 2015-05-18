@@ -1,55 +1,52 @@
 package com.linda.jetcd;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import org.apache.log4j.Logger;
 
-import net.sf.json.JSONArray;
-import net.sf.json.JSONException;
-import net.sf.json.JSONObject;
-import net.sf.json.JsonConfig;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class JSONUtils {
 
-	private static final JsonConfig config = new JsonConfig();
-
-	public static JSONObject formatJSONObject(String json){
-		return JSONObject.fromObject(json, config);
-	}
+	private static Logger logger = Logger.getLogger(JSONUtils.class);
 	
-	public static <T> T fromJSON(String json,Class<T> clazz){
-		JSONObject object = JSONObject.fromObject(json, config);
-		try {
-			return (T)JSONObject.toBean(object, clazz);
-		} catch (Exception e) {
-			throw new JSONException("parse json error. json:"+json+" class:"+clazz,e);
-		}
-	}
+	private static ObjectMapper objectMapper;
+	static {
+		objectMapper = new ObjectMapper();
+		objectMapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
+		objectMapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
+		objectMapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_CONTROL_CHARS, true);
+		objectMapper.configure(JsonParser.Feature.ALLOW_BACKSLASH_ESCAPING_ANY_CHARACTER, true);
+	};
 	
-	public static <T> List<T> fromJSONArray(String json,Class clazz){
-		JSONArray jsonArray = JSONArray.fromObject(json, config);
-		Object array = JSONArray.toCollection(jsonArray, clazz);
-		try{
-			List<T> list = new ArrayList<T>();
-			if(array!=null){
-				list.addAll((Collection)array);
-			}
-			return list;
-		}catch(Exception e){
-			throw new JSONException("parse array json error. json:"+json+" class:"+clazz,e);
-		}
+	public static ObjectMapper getJsonMapper() {
+		return objectMapper;
 	}
 
 	public static String toJSON(Object obj) {
-		if(obj==null){
-			return null;
+		try {
+			return getJsonMapper().writeValueAsString(obj);
+		} catch (Exception e) {
+			logger.error(e);
 		}
-		if (obj instanceof Collection||obj.getClass().isArray()) {
-			JSONArray jsonArray = JSONArray.fromObject(obj);
-			return jsonArray.toString();
-		}else{
-			JSONObject jsonObject = JSONObject.fromObject(obj);
-			return jsonObject.toString();
+		return null;
+	}
+
+	public static <T> T fromJSON(String json, Class<T> clz) {
+		try {
+			return getJsonMapper().readValue(json, clz);
+		} catch (Exception e) {
+			logger.error(e);
 		}
+		return null;
+	}
+
+	public static <T> T fromJSON(String json, TypeReference<T> typeReference) {
+		try {
+			return getJsonMapper().readValue(json, typeReference);
+		} catch (Exception e) {
+			logger.error(e);
+		}
+		return null;
 	}
 }
