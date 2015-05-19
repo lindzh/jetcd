@@ -12,6 +12,7 @@ import java.util.concurrent.ThreadFactory;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.concurrent.FutureCallback;
+import org.apache.log4j.Logger;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 
@@ -23,6 +24,8 @@ public class EtcdClient implements EtcdAdminClient{
 	
 	private EtcdWatcher watcher = new EtcdWatcher();
 	
+	private Logger logger = Logger.getLogger("etcd");
+	
 	public void start(){
 		watcher.start();
 	}
@@ -33,6 +36,21 @@ public class EtcdClient implements EtcdAdminClient{
 	
 	public EtcdClient(String url){
 		this.etcdUrl = url;
+	}
+	
+	private void logRequest(String url,Map<String,Object> bodyParams,String body,HttpResponseMeta responseMeta){
+		StringBuilder sb = new StringBuilder();
+		sb.append("url:"+url);
+		if(bodyParams!=null){
+			sb.append("body:"+JSONUtils.toJSON(bodyParams));
+		}
+		if(body!=null){
+			sb.append("body:"+body);
+		}
+		if(responseMeta!=null){
+			sb.append(" response:"+responseMeta.getStatusCode()+" "+responseMeta.getResponseAsString());
+		}
+		logger.info(sb.toString());
 	}
 	
 	private EtcdResult handleIOException(IOException e){
@@ -64,6 +82,7 @@ public class EtcdClient implements EtcdAdminClient{
 	public EtcdResult version(){
 		String url = this.genUrl("","/version");
 		HttpResponseMeta responseMeta = WebHttpUtils.httpGet(url, null, null);
+		this.logRequest(url, null, null, responseMeta);
 		return this.parse(responseMeta);
 	}
 	
@@ -79,6 +98,7 @@ public class EtcdClient implements EtcdAdminClient{
 		Map<String, Object> params = new HashMap<String,Object>();
 		params.put("value", value);
 		HttpResponseMeta responseMeta = WebHttpUtils.httpPut(url, null, params);
+		this.logRequest(url, params, null, responseMeta);
 		return this.parse(responseMeta);
 	}
 	
@@ -96,18 +116,21 @@ public class EtcdClient implements EtcdAdminClient{
 		params.put("ttl", ttl);
 		params.put("value", value);
 		HttpResponseMeta responseMeta = WebHttpUtils.httpPut(url, null, params);
+		this.logRequest(url, params, null, responseMeta);
 		return this.parse(responseMeta);
 	}
 	
 	public EtcdResult get(String key){
 		String url = this.genUrl("/v2/keys",key);
 		HttpResponseMeta responseMeta = WebHttpUtils.httpGet(url, null, null);
+		this.logRequest(url, null, null, responseMeta);
 		return this.parse(responseMeta);
 	}
 	
 	public EtcdResult del(String key){
 		String url = this.genUrl("/v2/keys",key);
 		HttpResponseMeta responseMeta = WebHttpUtils.httpDelete(url, null, null);
+		this.logRequest(url, null, null, responseMeta);
 		return this.parse(responseMeta);
 	}
 	
@@ -121,6 +144,7 @@ public class EtcdClient implements EtcdAdminClient{
 		Map<String, Object> params = new HashMap<String,Object>();
 		params.put("dir", true);
 		HttpResponseMeta responseMeta = WebHttpUtils.httpPut(url, null, params);
+		this.logRequest(url, params, null, responseMeta);
 		return this.parse(responseMeta);
 	}
 	
@@ -138,6 +162,7 @@ public class EtcdClient implements EtcdAdminClient{
 			params.put("recursive", recursive);
 		}
 		HttpResponseMeta responseMeta = WebHttpUtils.httpDelete(url, null, params);
+		this.logRequest(url, params, null, responseMeta);
 		return this.parse(responseMeta);
 	}
 	
@@ -157,6 +182,7 @@ public class EtcdClient implements EtcdAdminClient{
 			params.put("sorted", sorted);
 		}
 		HttpResponseMeta responseMeta = WebHttpUtils.httpGet(url, null, params);
+		this.logRequest(url, params, null, responseMeta);
 		return this.parse(responseMeta);
 	}
 	
@@ -173,6 +199,7 @@ public class EtcdClient implements EtcdAdminClient{
 			params.put("value", value);
 		}
 		HttpResponseMeta responseMeta = WebHttpUtils.httpPost(url, null, params);
+		this.logRequest(url, params, null, responseMeta);
 		return this.parse(responseMeta);
 	}
 	
@@ -191,6 +218,7 @@ public class EtcdClient implements EtcdAdminClient{
 		}
 		params.put("ttl", ttl);
 		HttpResponseMeta responseMeta = WebHttpUtils.httpPost(url, null, params);
+		this.logRequest(url, params, null, responseMeta);
 		return this.parse(responseMeta);
 	}
 	
@@ -237,19 +265,17 @@ public class EtcdClient implements EtcdAdminClient{
 		this.watch0(dir, params, callback);
 	}
 	
-	private void watch0(String key,Map<String,Object> params,EtcdWatchCallback callback){
+	private void watch0(String key,final Map<String,Object> params,EtcdWatchCallback callback){
 		final String url = this.genUrl("/v2/keys", key);
 		final EtcdChangeResult future = new EtcdChangeResult();
 		future.setKey(key);
 		future.setUrl(url);
-		if(params==null){
-			params = new HashMap<String,Object>();
-		}
 		params.put("wait", true);
 		watcher.addCallback(future, callback);
 		FutureCallback<HttpResponse> futureCallback = new FutureCallback<HttpResponse>(){
 			@Override
 			public void cancelled() {
+				EtcdClient.this.logRequest(url, params, null, null);
 				future.setResult(null);
 				future.setDone(true);
 				future.setFailReason("http request cancelled");
@@ -259,6 +285,7 @@ public class EtcdClient implements EtcdAdminClient{
 			public void completed(HttpResponse response) {
 				try{
 					HttpResponseMeta responseMeta = WebHttpUtils.getResponse(response);
+					EtcdClient.this.logRequest(url, params, null, responseMeta);
 					EtcdResult etcdResult = EtcdClient.this.parse(responseMeta);
 					future.setResult(etcdResult);
 					future.setDone(true);
@@ -270,6 +297,7 @@ public class EtcdClient implements EtcdAdminClient{
 			}
 			@Override
 			public void failed(Exception e) {
+				EtcdClient.this.logRequest(url, params, null, null);
 				future.setResult(null);
 				future.setDone(true);
 				future.setFailReason("http request exception:"+e.getMessage());
@@ -279,7 +307,8 @@ public class EtcdClient implements EtcdAdminClient{
 	}
 	
 	public void watch(String key,EtcdWatchCallback callback){
-		this.watch0(key, null, callback);
+		Map<String, Object> params = new HashMap<String,Object>();
+		this.watch0(key, params, callback);
 	}
 	
 	public EtcdResult cas(String key,String value,boolean prevExist){
@@ -288,6 +317,7 @@ public class EtcdClient implements EtcdAdminClient{
 		params.put("value", value);
 		params.put("prevExist", prevExist);
 		HttpResponseMeta responseMeta = WebHttpUtils.httpPut(url, null, params);
+		this.logRequest(url, params, null, responseMeta);
 		return this.parse(responseMeta);
 	}
 	
@@ -300,6 +330,7 @@ public class EtcdClient implements EtcdAdminClient{
 		params.put("ttl", ttl);
 		params.put("prevExist", prevExist);
 		HttpResponseMeta responseMeta = WebHttpUtils.httpPut(url, null, params);
+		this.logRequest(url, params, null, responseMeta);
 		return this.parse(responseMeta);
 	}
 	
@@ -309,6 +340,7 @@ public class EtcdClient implements EtcdAdminClient{
 		params.put("value", value);
 		params.put("prevValue", prevValue);
 		HttpResponseMeta responseMeta = WebHttpUtils.httpPut(url, null, params);
+		this.logRequest(url, params, null, responseMeta);
 		return this.parse(responseMeta);
 	}
 	
@@ -321,6 +353,7 @@ public class EtcdClient implements EtcdAdminClient{
 		params.put("ttl", ttl);
 		params.put("prevValue", prevValue);
 		HttpResponseMeta responseMeta = WebHttpUtils.httpPut(url, null, params);
+		this.logRequest(url, params, null, responseMeta);
 		return this.parse(responseMeta);
 	}
 	
@@ -330,6 +363,7 @@ public class EtcdClient implements EtcdAdminClient{
 		params.put("value", value);
 		params.put("prevIndex", prevIndex);
 		HttpResponseMeta responseMeta = WebHttpUtils.httpPut(url, null, params);
+		this.logRequest(url, params, null, responseMeta);
 		return this.parse(responseMeta);
 	}
 	
@@ -342,6 +376,7 @@ public class EtcdClient implements EtcdAdminClient{
 		params.put("ttl", ttl);
 		params.put("prevIndex", prevIndex);
 		HttpResponseMeta responseMeta = WebHttpUtils.httpPut(url, null, params);
+		this.logRequest(url, params, null, responseMeta);
 		return this.parse(responseMeta);
 	}
 	
@@ -351,6 +386,7 @@ public class EtcdClient implements EtcdAdminClient{
 		params.put("prevValue", prevValue);
 		params.put("value", value);
 		HttpResponseMeta responseMeta = WebHttpUtils.httpPut(url, null, params);
+		this.logRequest(url, params, null, responseMeta);
 		return this.parse(responseMeta);
 	}
 	
@@ -360,6 +396,7 @@ public class EtcdClient implements EtcdAdminClient{
 		params.put("prevExist", prevExist);
 		params.put("value", value);
 		HttpResponseMeta responseMeta = WebHttpUtils.httpPut(url, null, params);
+		this.logRequest(url, params, null, responseMeta);
 		return this.parse(responseMeta);
 	}
 
@@ -369,12 +406,14 @@ public class EtcdClient implements EtcdAdminClient{
 		params.put("prevIndex", prevIndex);
 		params.put("value", value);
 		HttpResponseMeta responseMeta = WebHttpUtils.httpPut(url, null, params);
+		this.logRequest(url, params, null, responseMeta);
 		return this.parse(responseMeta);
 	}
 	
 	public List<EtcdMember> members(){
 		String url = this.genUrl("/v2/members","");
 		HttpResponseMeta responseMeta = WebHttpUtils.httpGet(url, null, null);
+		this.logRequest(url, null, null, responseMeta);
 		if(responseMeta!=null){
 			if(responseMeta.getStatusCode()==200){
 				String resp = responseMeta.getResponseAsString();
@@ -395,6 +434,7 @@ public class EtcdClient implements EtcdAdminClient{
 		body.put("peerURLs", members);
 		String json = JSONUtils.toJSON(body);
 		HttpResponseMeta responseMeta = WebHttpUtils.httpPost(url, WebHttpUtils.HEAD_JSON, json);
+		this.logRequest(url, null, json, responseMeta);
 		if(responseMeta!=null){
 			int code = responseMeta.getStatusCode();
 			if(code>=200&&code<300){
@@ -411,6 +451,7 @@ public class EtcdClient implements EtcdAdminClient{
 	public boolean delMember(String id){
 		String url = this.genUrl("/v2/members/",id);
 		HttpResponseMeta responseMeta = WebHttpUtils.httpDelete(url, null, null);
+		this.logRequest(url, null, null, responseMeta);
 		if(responseMeta!=null){
 			int code = responseMeta.getStatusCode();
 			if(code/200==1&&code%200<100){
@@ -426,6 +467,7 @@ public class EtcdClient implements EtcdAdminClient{
 		body.put("peerURLs", members);
 		String json = JSONUtils.toJSON(body);
 		HttpResponseMeta responseMeta = WebHttpUtils.httpPut(url, WebHttpUtils.HEAD_JSON, json);
+		this.logRequest(url, null, json, responseMeta);
 		if(responseMeta!=null){
 			int code = responseMeta.getStatusCode();
 			String resp = responseMeta.getResponseAsString();
