@@ -220,7 +220,7 @@ public class WebHttpUtils {
 		HttpClient client = getInstance();
 		try {
 			if (body != null) {
-				StringEntity entity = new StringEntity(body);
+				StringEntity entity = new StringEntity(body,"utf-8");
 				put.setEntity(entity);
 			}
 			HttpResponse response = client.execute(put);
@@ -240,7 +240,7 @@ public class WebHttpUtils {
 		HttpClient client = getInstance();
 		try {
 			if (body != null) {
-				StringEntity entity = new StringEntity(body);
+				StringEntity entity = new StringEntity(body,"utf-8");
 				put.setEntity(entity);
 			}
 			HttpResponse response = client.execute(put);
@@ -283,7 +283,7 @@ public class WebHttpUtils {
 		HttpClient client = getInstance();
 		try {
 			if (body != null) {
-				StringEntity entity = new StringEntity(body);
+				StringEntity entity = new StringEntity(body,"utf-8");
 				post.setEntity(entity);
 			}
 			HttpResponse response = client.execute(post);
@@ -303,7 +303,7 @@ public class WebHttpUtils {
 		HttpClient client = getInstance();
 		try {
 			if (body != null) {
-				StringEntity entity = new StringEntity(body);
+				StringEntity entity = new StringEntity(body,"utf-8");
 				post.setEntity(entity);
 			}
 			HttpResponse response = client.execute(post);
