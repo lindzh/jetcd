@@ -90,7 +90,7 @@ public class EtcdClient implements EtcdAdminClient{
 	 * create a dir or set a key value,when create dir , value is not supported
 	 * @param key
 	 * @param value
-	 * @param dir
+	 * @param
 	 * @return
 	 */
 	public EtcdResult set(String key,String value){
@@ -107,7 +107,7 @@ public class EtcdClient implements EtcdAdminClient{
 	 * @param key
 	 * @param value
 	 * @param ttl
-	 * @param dir
+	 * @param
 	 * @return
 	 */
 	public EtcdResult set(String key,String value,int ttl){
@@ -220,38 +220,6 @@ public class EtcdClient implements EtcdAdminClient{
 		HttpResponseMeta responseMeta = httpComponent.httpPost(url, null, params);
 		this.logRequest(url, params, null, responseMeta);
 		return this.parse(responseMeta);
-	}
-	
-	/**
-	 * watch a key for change
-	 * use a http long connection if a key change the text response,then use callback to notify
-	 * @param key
-	 * @param callback
-	 */
-	private void watch0(String key,EtcdWatchCallback callback){
-		final String url = this.genUrl("/v2/keys", key);
-		final Map<String, Object> params = new HashMap<String, Object>();
-		final EtcdChangeResult future = new EtcdChangeResult();
-		future.setKey(key);
-		future.setUrl(url);
-		params.put("wait", true);
-		watcher.addCallback(future, callback);
-		Thread executeThread = threadFactory.newThread(new Runnable() {
-			public void run() {
-				try {
-					HttpResponseMeta responseMeta = httpComponent.httpGet(url, null, params);
-					EtcdResult etcdResult = EtcdClient.this.parse(responseMeta);
-					future.setResult(etcdResult);
-					future.setDone(true);
-				} catch (Exception e) {
-					future.setResult(null);
-					future.setDone(true);
-					future.setFailReason("http request exception:"+e.getMessage());
-					throw new EtcdException(e);
-				}
-			}
-		});
-		executeThread.start();
 	}
 	
 	public void watchChildren(String dir,boolean recursive,boolean sorted,EtcdWatchCallback callback){

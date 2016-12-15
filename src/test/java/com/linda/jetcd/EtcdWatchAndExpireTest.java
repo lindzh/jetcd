@@ -6,14 +6,14 @@ public class EtcdWatchAndExpireTest {
 		
 //		final String key = "/watchTestKey";
 		final String key = "/mydir";
-		final EtcdClient client = new EtcdClient("http://192.168.139.129:2911");
+		final EtcdClient client = new EtcdClient("http://127.0.0.1:2379");
 		client.start();
 		
 		EtcdWatchCallback callback = new EtcdWatchCallback(){
 			public void onChange(EtcdChangeResult future) {
 				System.out.println(JSONUtils.toJSON(future.getResult()));
 				EtcdResult children = client.children(key, true, true);
-				System.out.println("newChildren:"+JSONUtils.toJSON(children));
+				System.out.println("getnewChildren:"+JSONUtils.toJSON(children));
 				client.watchChildren(key, true,true,this);
 			}
 		};
