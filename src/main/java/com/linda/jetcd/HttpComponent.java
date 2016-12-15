@@ -94,6 +94,7 @@ public class HttpComponent {
 		nhttpConnectionManager.setDefaultMaxPerRoute(50);
 		
 		RequestConfig defaultConfig = RequestConfig.custom().setSocketTimeout(defaultTimeout).setConnectTimeout(defaultTimeout).build();
+
 		RequestConfig longConConfig = RequestConfig.custom().setSocketTimeout(longConnectionTimeout).setConnectTimeout(longConnectionTimeout).build();
 
 		defaultHttpClient = HttpClients.custom().setDefaultRequestConfig(defaultConfig).setConnectionManager(connectionManager).build();
