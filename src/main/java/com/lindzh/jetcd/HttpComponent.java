@@ -1,4 +1,4 @@
-package com.linda.jetcd;
+package com.lindzh.jetcd;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

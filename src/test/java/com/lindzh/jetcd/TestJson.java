@@ -1,4 +1,4 @@
-package com.linda.jetcd;
+package com.lindzh.jetcd;
 
 
 public class TestJson {
