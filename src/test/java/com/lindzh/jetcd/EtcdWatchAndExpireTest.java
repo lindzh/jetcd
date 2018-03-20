@@ -2,7 +2,7 @@ package com.lindzh.jetcd;
 
 public class EtcdWatchAndExpireTest {
 	
-	public static void main(String[] args) {
+	public static void main1(String[] args) {
 		
 //		final String key = "/watchTestKey";
 		final String key = "/mydir";

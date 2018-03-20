@@ -88,10 +88,6 @@ public class EtcdClient implements EtcdAdminClient{
 	
 	/**
 	 * create a dir or set a key value,when create dir , value is not supported
-	 * @param key
-	 * @param value
-	 * @param
-	 * @return
 	 */
 	public EtcdResult set(String key,String value){
 		String url = this.genUrl("/v2/keys",key);
@@ -104,11 +100,6 @@ public class EtcdClient implements EtcdAdminClient{
 	
 	/**
 	 * create a dir or set a key value,when create dir , value is not supported
-	 * @param key
-	 * @param value
-	 * @param ttl
-	 * @param
-	 * @return
 	 */
 	public EtcdResult set(String key,String value,int ttl){
 		String url = this.genUrl("/v2/keys",key);
@@ -136,8 +127,6 @@ public class EtcdClient implements EtcdAdminClient{
 	
 	/**
 	 * this method is used to create a dir
-	 * @param key
-	 * @return
 	 */
 	public EtcdResult dir(String key){
 		String url = this.genUrl("/v2/keys",key);
@@ -150,9 +139,6 @@ public class EtcdClient implements EtcdAdminClient{
 	
 	/**
 	 * del a dir
-	 * @param key
-	 * @param recursive
-	 * @return
 	 */
 	public EtcdResult delDir(String key,boolean recursive){
 		String url = this.genUrl("/v2/keys",key);
@@ -168,9 +154,6 @@ public class EtcdClient implements EtcdAdminClient{
 	
 	/**
 	 * 获取某一目录下节点
-	 * @param dir
-	 * @param recursive
-	 * @return
 	 */
 	public EtcdResult children(String dir,boolean recursive,boolean sorted){
 		String url = this.genUrl("/v2/keys",dir);
@@ -188,9 +171,6 @@ public class EtcdClient implements EtcdAdminClient{
 	
 	/**
 	 * 创建队列，用于获取锁，无超时时间
-	 * @param queue
-	 * @param value
-	 * @return
 	 */
 	public EtcdResult queue(String queue,String value){
 		String url = this.genUrl("/v2/keys",queue);
@@ -205,10 +185,6 @@ public class EtcdClient implements EtcdAdminClient{
 	
 	/**
 	 * 创建有序队列，用于获取锁，同时设置ttl超时时间
-	 * @param queue
-	 * @param value
-	 * @param ttl
-	 * @return
 	 */
 	public EtcdResult queue(String queue,String value,int ttl){
 		String url = this.genUrl("/v2/keys",queue);

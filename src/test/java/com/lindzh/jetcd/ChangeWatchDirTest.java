@@ -2,7 +2,7 @@ package com.lindzh.jetcd;
 
 public class ChangeWatchDirTest {
 	
-	public static void main(String[] args) throws InterruptedException {
+	public static void main1(String[] args) throws InterruptedException {
 		final EtcdClient client = new EtcdClient("http://127.0.0.1:2379");
 		client.start();
 		String dir = "/mydir";

@@ -6,13 +6,13 @@ public class SimpleEtcdClientTest {
 	
 	private EtcdClient client;
 	
-	public void testVersion(){
+	public void uTestVersion(){
 		EtcdResult version = client.version();
 		System.out.println("version:"+JSONUtils.toJSON(version));
 	}
 	
-	public void testKey() throws InterruptedException{
-		String key = "/testKey";
+	public void uTestKey() throws InterruptedException{
+		String key = "/uTestKey";
 		EtcdResult result = client.get(key);
 		System.out.println("init get:" +JSONUtils.toJSON(result));
 		result = client.set(key, "11111111");
@@ -32,7 +32,7 @@ public class SimpleEtcdClientTest {
 		System.out.println("after del:"+JSONUtils.toJSON(result));
 	}
 	
-	public void testMembers() throws InterruptedException{
+	public void uTestMembers() throws InterruptedException{
 		List<EtcdMember> members = client.members();
 		System.out.println("init"+JSONUtils.toJSON(members));
 		EtcdMember member = members.get(2);
@@ -50,25 +50,25 @@ public class SimpleEtcdClientTest {
 		System.out.println("after set"+JSONUtils.toJSON(members));
 	}
 	
-	public void testDir(){
+	public void uTestDir(){
 		
 	}
 	
-	public void testcas(){
-		String key = "/testCas";
-		client.cas(key, "testCas-1", false);
+	public void uTestcas(){
+		String key = "/uTestCas";
+		client.cas(key, "uTestCas-1", false);
 		EtcdResult result = client.get(key);
 		System.out.println("init get:" +JSONUtils.toJSON(result));
-		client.cas(key, "testCas-2", false);
+		client.cas(key, "uTestCas-2", false);
 		result = client.get(key);
 		System.out.println("cas noexist get:" +JSONUtils.toJSON(result));
-		client.cas(key, "testCas-2", true);
+		client.cas(key, "uTestCas-2", true);
 		result = client.get(key);
 		System.out.println("cas exist get:" +JSONUtils.toJSON(result));
 	}
 	
-	public void testCallback(){
-		String key = "/testCallback";
+	public void uTestCallback(){
+		String key = "/uTestCallback";
 		EtcdResult result = client.get(key);
 		System.out.println("init get:" +JSONUtils.toJSON(result));
 		result = client.set(key, "11111111");
@@ -113,8 +113,8 @@ public class SimpleEtcdClientTest {
 		System.out.println("dir children:" +JSONUtils.toJSON(result));
 	}
 	
-	public void testQueue() throws InterruptedException{
-		String queue = "/testQueue";
+	public void aaaQueue() throws InterruptedException{
+		String queue = "/uTestQueue";
 		//queue name is a directory
 		client.delDir(queue, true);
 		EtcdResult result = client.queue(queue, "job1");
@@ -143,16 +143,16 @@ public class SimpleEtcdClientTest {
 		System.out.println("queue del job3 children:" +JSONUtils.toJSON(result));
 	}
 	
-	public static void main(String[] args) throws InterruptedException {
+	public static void main1(String[] args) throws InterruptedException {
 		SimpleEtcdClientTest clientTest = new SimpleEtcdClientTest();
 		clientTest.client = new EtcdClient("http://192.168.139.129:2911");
 		clientTest.client.start();
-//		clientTest.testVersion();
-//		clientTest.testKey();
-//		clientTest.testMembers();
-//		clientTest.testCallback();
-//		clientTest.testcas();
+//		clientTest.uTestVersion();
+//		clientTest.uTestKey();
+//		clientTest.uTestMembers();
+//		clientTest.uTestCallback();
+//		clientTest.uTestcas();
 //		clientTest.dirTest();
-		clientTest.testQueue();
+		clientTest.aaaQueue();
 	}
 }

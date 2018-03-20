@@ -2,7 +2,7 @@ package com.lindzh.jetcd;
 
 public class ChangeWatchKeyTest {
 	
-	public static void main(String[] args) throws InterruptedException {
+	public static void main1(String[] args) throws InterruptedException {
 		final String key = "/watchTestKey";
 		final EtcdClient client = new EtcdClient("http://192.168.139.129:2911");
 		client.start();
