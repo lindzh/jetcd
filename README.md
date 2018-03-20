@@ -5,6 +5,16 @@ watch auto notify for change,easy to use
 ![model](http://img1.ph.126.net/q8AA8JyLVjE-RFtepxMSyQ==/6631230493419655900.png)
 ***
 
+### maven 引入依赖
+
+```xml
+<dependency>
+  <groupId>com.lindzh</groupId>
+  <artifactId>jetcd</artifactId>
+  <version>1.0.1</version>
+</dependency>
+```
+
 >simple setting config operation
 
 ```java
